@@ -119,6 +119,7 @@ class Client
      * @throws InvalidArgument
      * @throws RequestFailed
      * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/catalogProductRepositoryV1/catalogProductRepositoryV1GetListGet
      */
     public function getProducts($where = [], $orderBy = null, $page = 1, $limit = 100)
     {
@@ -141,11 +142,139 @@ class Client
         }
     }
 
+    /**
+     * @param $sku
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/catalogInventoryStockRegistryV1/catalogInventoryStockRegistryV1GetStockItemBySkuGet
+     */
     public function getStockItem($sku)
     {
         $response = $this->getClient()->request(
             'GET',
             $this->baseUrl.'/rest/V1/stockItems/'.$sku
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch($response->getStatusCode()){
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode().' - '.print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
+
+    /**
+     * @param array $where
+     * @param null $orderBy
+     * @param int $page
+     * @param int $limit
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/catalogCategoryListV1/catalogCategoryListV1GetListGet
+     */
+    public function getCategories($where = [], $orderBy = null, $page = 1, $limit = 100)
+    {
+        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest//V1/categories/list?'.$searchCriteria->toString()
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch($response->getStatusCode()){
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode().' - '.print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
+
+    /**
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/storeStoreRepositoryV1
+     */
+    public function getStoreViews()
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest//V1/store/storeViews'
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch($response->getStatusCode()){
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode().' - '.print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
+
+    /**
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/storeGroupRepositoryV1
+     */
+    public function getStoreGroups()
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest//V1/store/storeGroups'
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch($response->getStatusCode()){
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode().' - '.print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
+
+    /**
+     * @param array $where
+     * @param null|array $orderBy
+     * @param int $page
+     * @param int $limit
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/cmsPageRepositoryV1/cmsPageRepositoryV1GetListGet
+     */
+    public function getCmsPages($where = [], $orderBy = null, $page = 1, $limit = 100)
+    {
+        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest/V1/cmsPage/search?'.$searchCriteria->toString()
         );
 
         $body = \GuzzleHttp\json_decode($response->getBody(), true);
