@@ -1,13 +1,19 @@
 {
     "name": "zero1/magento2-rest-client",
     "description": "PHP rest client for Magento 2",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "type": "library",
     "authors": [
         {
             "name": "zero1",
             "email": "support@zero1.co.uk"
         }
+    ],
+    "keywords": [
+        "Magento",
+        "Magento 2",
+        "Rest Client",
+        "API"
     ],
     "autoload": {
         "psr-4": {

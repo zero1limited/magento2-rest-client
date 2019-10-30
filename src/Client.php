@@ -28,7 +28,7 @@ class Client
         $username,
         $password
     ){
-        $this->baseUrl = $baseUrl;
+        $this->baseUrl = rtrim($baseUrl, '/');
         $this->username = $username;
         $this->password = $password;
     }
@@ -65,6 +65,16 @@ class Client
             }
         }
         return $this->token;
+    }
+
+    protected function buildQueryArray($key, $data)
+    {
+        $output = [];
+        foreach($data as $k => $v){
+            $output[] = $key.'['.$k.']='.$v;
+        }
+        return implode('&', $output);
+
     }
 
     /**
@@ -275,6 +285,30 @@ class Client
         $response = $this->getClient()->request(
             'GET',
             $this->baseUrl.'/rest/V1/cmsPage/search?'.$searchCriteria->toString()
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch($response->getStatusCode()){
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode().' - '.print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
+
+    public function getStoreConfiguration($stores = [])
+    {
+        $query = '';
+        if(!empty($stores)){
+            $query = '?'.$this->buildQueryArray('storeCode', $stores);
+        }
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest/V1/store/storeConfigs'.$query
         );
 
         $body = \GuzzleHttp\json_decode($response->getBody(), true);

@@ -1,5 +1,5 @@
 <?php
-include 'vendor/autoload.php';
+include '../vendor/autoload.php';
 
 $baseUrl = $argv[1];
 $username = $argv[2];
