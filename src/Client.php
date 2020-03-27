@@ -37,8 +37,8 @@ class Client
     {
         if(!$this->token){
             $client = new \GuzzleHttp\Client([
-                'headers' => $this->commonHeaders
-            ]);
+                                                 'headers' => $this->commonHeaders
+                                             ]);
             /** @var \GuzzleHttp\Psr7\Response $response */
             $response = $client->request(
                 'POST',
@@ -85,10 +85,10 @@ class Client
     {
         if(!$this->client){
             $this->client = new \GuzzleHttp\Client([
-                'headers' => array_merge($this->commonHeaders, [
-                    'Authorization' => 'Bearer '.$this->getToken()
-                ])
-            ]);
+                                                       'headers' => array_merge($this->commonHeaders, [
+                                                           'Authorization' => 'Bearer '.$this->getToken()
+                                                       ])
+                                                   ]);
         }
 
         return $this->client;
@@ -118,6 +118,34 @@ class Client
         return $searchCriteria;
     }
 
+    /**
+     * @param string $sku
+     * @return array
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleExceptioncatalogProductRepositoryV1
+     * @see https://devdocs.magento.com/swagger/#/catalogProductRepositoryV1/catalogProductRepositoryV1GetGet
+     */
+    public function getProductBySku($sku)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest/V1/products/'.$sku
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch($response->getStatusCode()){
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode().' - '.print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
 
     /**
      * @param array $where
@@ -319,6 +347,49 @@ class Client
             default:
                 throw new RequestFailed(
                     $response->getStatusCode().' - '.print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
+
+    /**
+     * Update the stock level of the given SKU.
+     *
+     * @param string $sku
+     * @param int $quantity
+     * @param int|null $item_id
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     */
+    public function setStockLevelForSku(string $sku, int $quantity, int $item_id = null)
+    {
+        // We can't set the default above to be 1, so null-check
+        // it here and then default to item 1 in the product.
+        if ($item_id === null) {
+            $item_id = 1;
+        }
+
+        $response = $this->getClient()->request(
+            'PUT',
+            $this->baseUrl . '/rest/V1/products/' . $sku . '/stockItems/'.$item_id,
+            [
+                'json' => [
+                    'stockItem' => [
+                        'qty' => $quantity
+                    ]
+                ]
+            ]
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch ($response->getStatusCode()) {
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode() . ' - ' . print_r($body, true),
                     $response->getStatusCode()
                 );
         }
