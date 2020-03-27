@@ -6,23 +6,51 @@ use Magento2\Exception\Authentication;
 use Magento2\Exception\InvalidArgument;
 use Magento2\Exception\RequestFailed;
 
+/**
+ * Class Client
+ * @package Magento2
+ */
 class Client
 {
+    /**
+     * @var string
+     */
     protected $baseUrl;
 
+    /**
+     * @var
+     */
     protected $username;
 
+    /**
+     * @var
+     */
     protected $password;
 
+    /**
+     * @var
+     */
     protected $token;
 
+    /**
+     * @var
+     */
     protected $client;
 
+    /**
+     * @var array
+     */
     protected $commonHeaders = [
         'Content-Type' => 'application/json',
         'User-Agent' => 'Magento 2 rest client (created by Zero1 https://www.zero1.co.uk)',
     ];
 
+    /**
+     * Client constructor.
+     * @param $baseUrl
+     * @param $username
+     * @param $password
+     */
     public function __construct(
         $baseUrl,
         $username,
@@ -33,6 +61,10 @@ class Client
         $this->password = $password;
     }
 
+    /**
+     * @return mixed
+     * @throws Authentication
+     */
     protected function getToken()
     {
         if(!$this->token){
@@ -67,6 +99,11 @@ class Client
         return $this->token;
     }
 
+    /**
+     * @param $key
+     * @param $data
+     * @return string
+     */
     protected function buildQueryArray($key, $data)
     {
         $output = [];
@@ -328,6 +365,12 @@ class Client
         }
     }
 
+    /**
+     * @param array $stores
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     */
     public function getStoreConfiguration($stores = [])
     {
         $query = '';
