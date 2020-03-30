@@ -265,14 +265,6 @@ class Client
         return $this->handleResponse($response);
     }
 
-
-    /**
-     * @param $id
-     */
-    public function getOrder($id)
-    {
-    }
-
     /**
      * @return mixed
      * @throws Authentication
@@ -329,6 +321,45 @@ class Client
 
         return $this->handleResponse($response);
     }
+
+
+    /**
+     * @param $order_id
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     */
+    public function getOrder($order_id)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/orders/' . $order_id
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param array $where
+     * @param null $orderBy
+     * @param int $page
+     * @param int $limit
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     */
+    public function getOrders($where = [], $orderBy = null, $page = 1, $limit = 100)
+    {
+        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/orders?' . $searchCriteria->toString()
+        );
+
+        return $this->handleResponse($response);
+    }
+
 
     /**
      * @param array $stores
