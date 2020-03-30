@@ -266,6 +266,22 @@ class Client
     }
 
     /**
+     * @param $customer_id
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     */
+    public function getCustomer($customer_id)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/customers/'.$customer_id
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
      * @return mixed
      * @throws Authentication
      * @throws RequestFailed
@@ -293,7 +309,7 @@ class Client
     {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl . '/rest//V1/store/storeGroups'
+            $this->baseUrl . '/rest/V1/store/storeGroups'
         );
 
         return $this->handleResponse($response);
