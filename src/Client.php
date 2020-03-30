@@ -1,4 +1,5 @@
 <?php
+
 namespace Magento2;
 
 use Dsheiko\SearchCriteria;
@@ -55,7 +56,7 @@ class Client
         $baseUrl,
         $username,
         $password
-    ){
+    ) {
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->username = $username;
         $this->password = $password;
@@ -67,14 +68,16 @@ class Client
      */
     protected function getToken()
     {
-        if(!$this->token){
-            $client = new \GuzzleHttp\Client([
-                                                 'headers' => $this->commonHeaders
-                                             ]);
+        if (!$this->token) {
+            $client = new \GuzzleHttp\Client(
+                [
+                    'headers' => $this->commonHeaders
+                ]
+            );
             /** @var \GuzzleHttp\Psr7\Response $response */
             $response = $client->request(
                 'POST',
-                $this->baseUrl.'/rest/V1/integration/admin/token',
+                $this->baseUrl . '/rest/V1/integration/admin/token',
                 [
                     'json' => [
                         'username' => $this->username,
@@ -85,13 +88,13 @@ class Client
 
             $token = \GuzzleHttp\json_decode($response->getBody(), true);
 
-            switch($response->getStatusCode()){
+            switch ($response->getStatusCode()) {
                 case 200:
                     $this->token = $token;
                     break;
                 default:
                     throw new Authentication(
-                        $response->getStatusCode().' - '.$token,
+                        $response->getStatusCode() . ' - ' . $token,
                         $response->getStatusCode()
                     );
             }
@@ -107,11 +110,10 @@ class Client
     protected function buildQueryArray($key, $data)
     {
         $output = [];
-        foreach($data as $k => $v){
-            $output[] = $key.'['.$k.']='.$v;
+        foreach ($data as $k => $v) {
+            $output[] = $key . '[' . $k . ']=' . $v;
         }
         return implode('&', $output);
-
     }
 
     /**
@@ -120,12 +122,17 @@ class Client
      */
     public function getClient()
     {
-        if(!$this->client){
-            $this->client = new \GuzzleHttp\Client([
-                                                       'headers' => array_merge($this->commonHeaders, [
-                                                           'Authorization' => 'Bearer '.$this->getToken()
-                                                       ])
-                                                   ]);
+        if (!$this->client) {
+            $this->client = new \GuzzleHttp\Client(
+                [
+                    'headers' => array_merge(
+                        $this->commonHeaders,
+                        [
+                            'Authorization' => 'Bearer ' . $this->getToken()
+                        ]
+                    )
+                ]
+            );
         }
 
         return $this->client;
@@ -142,17 +149,37 @@ class Client
     protected function buildQuery($where = [], $orderBy = null, $page = 1, $limit = 100)
     {
         $searchCriteria = new SearchCriteria();
-        foreach($where as $filterGroup){
+        foreach ($where as $filterGroup) {
             $searchCriteria->filterGroup($filterGroup);
         }
         $searchCriteria->limit($page, $limit);
-        if($orderBy){
+        if ($orderBy) {
             $message = '$orderBy must be an array with two element \'field\' and \'direction\'.';
-            if(!is_array($orderBy) || !isset($orderBy['field'], $orderBy['direction'])){
+            if (!is_array($orderBy) || !isset($orderBy['field'], $orderBy['direction'])) {
                 throw new InvalidArgument($message);
             }
         }
         return $searchCriteria;
+    }
+
+    /**
+     * @param $response
+     * @return mixed
+     * @throws RequestFailed
+     */
+    private function handleResponse($response)
+    {
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch ($response->getStatusCode()) {
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode() . ' - ' . print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
     }
 
     /**
@@ -168,20 +195,10 @@ class Client
     {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/products/'.$sku
+            $this->baseUrl . '/rest/V1/products/' . $sku
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 
     /**
@@ -201,20 +218,10 @@ class Client
         $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/products?'.$searchCriteria->toString()
+            $this->baseUrl . '/rest/V1/products?' . $searchCriteria->toString()
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 
     /**
@@ -229,20 +236,10 @@ class Client
     {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/stockItems/'.$sku
+            $this->baseUrl . '/rest/V1/stockItems/' . $sku
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 
     /**
@@ -262,20 +259,18 @@ class Client
         $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest//V1/categories/list?'.$searchCriteria->toString()
+            $this->baseUrl . '/rest//V1/categories/list?' . $searchCriteria->toString()
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+        return $this->handleResponse($response);
+    }
 
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+
+    /**
+     * @param $id
+     */
+    public function getOrder($id)
+    {
     }
 
     /**
@@ -289,20 +284,10 @@ class Client
     {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest//V1/store/storeViews'
+            $this->baseUrl . '/rest//V1/store/storeViews'
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 
     /**
@@ -316,20 +301,10 @@ class Client
     {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest//V1/store/storeGroups'
+            $this->baseUrl . '/rest//V1/store/storeGroups'
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 
     /**
@@ -349,20 +324,10 @@ class Client
         $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/cmsPage/search?'.$searchCriteria->toString()
+            $this->baseUrl . '/rest/V1/cmsPage/search?' . $searchCriteria->toString()
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 
     /**
@@ -374,25 +339,15 @@ class Client
     public function getStoreConfiguration($stores = [])
     {
         $query = '';
-        if(!empty($stores)){
-            $query = '?'.$this->buildQueryArray('storeCode', $stores);
+        if (!empty($stores)) {
+            $query = '?' . $this->buildQueryArray('storeCode', $stores);
         }
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/store/storeConfigs'.$query
+            $this->baseUrl . '/rest/V1/store/storeConfigs' . $query
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch($response->getStatusCode()){
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode().' - '.print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 
     /**
@@ -415,7 +370,7 @@ class Client
 
         $response = $this->getClient()->request(
             'PUT',
-            $this->baseUrl . '/rest/V1/products/' . $sku . '/stockItems/'.$item_id,
+            $this->baseUrl . '/rest/V1/products/' . $sku . '/stockItems/' . $item_id,
             [
                 'json' => [
                     'stockItem' => [
@@ -425,16 +380,6 @@ class Client
             ]
         );
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch ($response->getStatusCode()) {
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode() . ' - ' . print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $this->handleResponse($response);
     }
 }

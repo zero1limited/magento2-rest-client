@@ -33,3 +33,19 @@ _get all simple, enabled and visible products_
   - added to docs
   - moved examples
   - added example
+  
+- 1.0.3
+  Added the methods:
+  - getProductBySku($sku)
+  - setStockLevelForSku($sku, $quantity, $item_id)  
+  - loadOrder($id)
+  - getOrders($filter)
+  - getCustomer($id)
+  - addOrderComment($orderId, $status, $message, $notify)
+  - getAllProducts($filters)
+  - getStockInfo($sku_or_product_id)
+  - updateStock($sku_or_id, $stockdata)
+  - getAllGiftCards
+  - updateGiftCard($code, $balance, $expiry = null)
+  - getGiftCardFromOrder($order_id)
+  
