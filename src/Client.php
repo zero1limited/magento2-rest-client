@@ -243,6 +243,39 @@ class Client
     }
 
     /**
+     * @param null $orderBy
+     * @param int $page
+     * @param int $limit
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/catalogCategoryManagementV1/catalogCategoryManagementV1GetTreeGet
+     */
+    public function getAllCategories($orderBy = null, $page = 1, $limit = 100)
+    {
+        $searchCriteria = $this->buildQuery([], $orderBy, $page, $limit);
+
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/categories?' . $searchCriteria->toString()
+        );
+
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch ($response->getStatusCode()) {
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode() . ' - ' . print_r($body, true),
+                    $response->getStatusCode()
+                );
+        }
+    }
+
+    /**
      * @param array $where
      * @param null $orderBy
      * @param int $page
