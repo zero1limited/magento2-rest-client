@@ -48,4 +48,12 @@ _get all simple, enabled and visible products_
   - getAllGiftCards
   - updateGiftCard($code, $balance, $expiry = null)
   - getGiftCardFromOrder($order_id)
-  
+ 
+- 1.0.5
+   Added the methods:
+  - getAllCategories($orderBy, $page, $limit)
+  - getCustomer($customer_id)
+  - getOrder($order_id)
+  - getOrders($where, $orderBy, $page, $limit)
+  - getProductBySku($sku)
+  - setStockLevelForSku(($sku, $quantity, $item_id)

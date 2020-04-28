@@ -1,7 +1,7 @@
 {
     "name": "zero1/magento2-rest-client",
     "description": "PHP rest client for Magento 2",
-    "version": "1.0.2",
+    "version": "1.0.5",
     "type": "library",
     "authors": [
         {
@@ -20,8 +20,18 @@
             "Magento2\\": "src/"
         }
     },
+    "autoload-dev": {
+        "classmap": [
+            "tests/"
+        ]
+    },
     "require": {
         "dsheiko/magentosearchquerybuilder": "^1.0",
         "guzzlehttp/guzzle": "^6.3"
+    },
+    "require-dev": {
+        "fzaninotto/faker": "~1.4",
+        "phpunit/phpunit": "~7.0",
+        "mockery/mockery": "~1.0"
     }
 }
