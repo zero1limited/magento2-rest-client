@@ -18,6 +18,8 @@ $products = $magento->getProducts([
 ```
 _get all simple, enabled and visible products_
 
+
+
 ## Changelog
 - 1.0.0  
   Initial commit
@@ -57,3 +59,10 @@ _get all simple, enabled and visible products_
   - getOrders($where, $orderBy, $page, $limit)
   - getProductBySku($sku)
   - setStockLevelForSku(($sku, $quantity, $item_id)
+  
+- 1.0.6
+  Added the methods:
+  - getStockStatuses($sku)
+  - shipOrder($orderId, $items = [], $notify = true, $appendComment = true, $comment = [], $tracks = [], $packages = [], $arguments = [])
+  - getOrderItems($where = [], $orderBy = null, $page = 1, $limit = 100)
+  Added the ability to supply custom configuration to the guzzle client

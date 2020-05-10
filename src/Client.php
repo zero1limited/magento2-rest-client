@@ -19,22 +19,22 @@ class Client
     protected $baseUrl;
 
     /**
-     * @var
+     * @var string
      */
     protected $username;
 
     /**
-     * @var
+     * @var string
      */
     protected $password;
 
     /**
-     * @var
+     * @var string
      */
     protected $token;
 
     /**
-     * @var
+     * @var \GuzzleHttp\Client
      */
     protected $client;
 
@@ -47,19 +47,27 @@ class Client
     ];
 
     /**
+     * @var array
+     */
+    protected $options = [];
+
+    /**
      * Client constructor.
-     * @param $baseUrl
-     * @param $username
-     * @param $password
+     * @param $baseUrl string
+     * @param $username string
+     * @param $password string
+     * @param $options []
      */
     public function __construct(
         $baseUrl,
         $username,
-        $password
+        $password,
+        $options = []
     ) {
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->username = $username;
         $this->password = $password;
+        $this->options = $options;
     }
 
     /**
@@ -69,11 +77,12 @@ class Client
     protected function getToken()
     {
         if (!$this->token) {
-            $client = new \GuzzleHttp\Client(
+            $client = new \GuzzleHttp\Client(array_merge(
+                $this->options,
                 [
                     'headers' => $this->commonHeaders
                 ]
-            );
+            ));
             /** @var \GuzzleHttp\Psr7\Response $response */
             $response = $client->request(
                 'POST',
@@ -123,7 +132,8 @@ class Client
     public function getClient()
     {
         if (!$this->client) {
-            $this->client = new \GuzzleHttp\Client(
+            $this->client = new \GuzzleHttp\Client(array_merge(
+                $this->options,
                 [
                     'headers' => array_merge(
                         $this->commonHeaders,
@@ -132,7 +142,7 @@ class Client
                         ]
                     )
                 ]
-            );
+            ));
         }
 
         return $this->client;
@@ -276,6 +286,24 @@ class Client
     }
 
     /**
+     * @param $sku
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/catalogInventoryStockRegistryV1/catalogInventoryStockRegistryV1GetStockItemBySkuGet
+     */
+    public function getStockStatuses($sku)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest/V1/stockStatuses/'.$sku
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
      * @param array $where
      * @param null $orderBy
      * @param int $page
@@ -371,7 +399,6 @@ class Client
         return $this->handleResponse($response);
     }
 
-
     /**
      * @param $order_id
      * @return mixed
@@ -408,7 +435,6 @@ class Client
 
         return $this->handleResponse($response);
     }
-
 
     /**
      * @param array $stores
@@ -458,6 +484,81 @@ class Client
                     ]
                 ]
             ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param $orderId
+     * @param array $items
+     * @param bool $notify
+     * @param bool $appendComment
+     * @param array $comment
+     * @param array $tracks
+     * @param array $packages
+     * @param array $arguments
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function shipOrder(
+        $orderId,
+        $items = [],
+        $notify = true,
+        $appendComment = true,
+        $comment = [],
+        $tracks = [],
+        $packages = [],
+        $arguments = []
+    ){
+        $request = [];
+        if(!empty($items)){
+            $request['items'] = $items;
+        }
+        if(!empty($comment)){
+            $request['comment'] = $comment;
+        }
+        if(!empty($tracks)){
+            $request['tracks'] = $tracks;
+        }
+        if(!empty($packages)){
+            $request['packages'] = $packages;
+        }
+        if(!empty($arguments)){
+            $request['arguments'] = $arguments;
+        }
+
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl.'/rest/V1/order/'.$orderId.'/ship',
+            [
+                'json' => $request
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param array $where
+     * @param null|array $orderBy
+     * @param int $page
+     * @param int $limit
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/cmsPageRepositoryV1/cmsPageRepositoryV1GetListGet
+     */
+    public function getOrderItems($where = [], $orderBy = null, $page = 1, $limit = 100)
+    {
+        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest/V1/orders/items?'.$searchCriteria->toString()
         );
 
         return $this->handleResponse($response);
