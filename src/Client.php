@@ -3,9 +3,9 @@
 namespace Magento2;
 
 use Dsheiko\SearchCriteria;
-use Magento2\Exception\Authentication;
-use Magento2\Exception\InvalidArgument;
-use Magento2\Exception\RequestFailed;
+use Magento2\Client\Exception\Authentication;
+use Magento2\Client\Exception\InvalidArgument;
+use Magento2\Client\Exception\RequestFailed;
 
 /**
  * Class Client
