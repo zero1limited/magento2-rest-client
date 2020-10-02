@@ -563,4 +563,33 @@ class Client
 
         return $this->handleResponse($response);
     }
+
+    public function getProductAttribute($attribute) {
+
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest/V1/products/attributes/'.$attribute
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    public function addAttribute($attribute, $label) {
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl.'/rest/V1/products/attributes',
+            [
+                'json' => [
+                    'attribute' => [
+                        'attribute_code' => $attribute,
+                        'options' => [
+                            'label' => $label
+                        ]
+                    ]
+                ]
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
 }
