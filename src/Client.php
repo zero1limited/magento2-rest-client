@@ -3,6 +3,7 @@
 namespace Magento2;
 
 use Dsheiko\SearchCriteria;
+use Exception;
 use Magento2\Client\Exception\Authentication;
 use Magento2\Client\Exception\InvalidArgument;
 use Magento2\Client\Exception\RequestFailed;
@@ -71,18 +72,64 @@ class Client
     }
 
     /**
+     * @param string $sku
+     * @return array
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleExceptioncatalogProductRepositoryV1
+     * @see https://devdocs.magento.com/swagger/#/catalogProductRepositoryV1/catalogProductRepositoryV1GetGet
+     */
+    public function getProductBySku($sku)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/products/' . $sku
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @return \GuzzleHttp\Client
+     * @throws Authentication
+     */
+    public function getClient()
+    {
+        if (!$this->client) {
+            $this->client = new \GuzzleHttp\Client(
+                array_merge(
+                    $this->options,
+                    [
+                        'headers' => array_merge(
+                            $this->commonHeaders,
+                            [
+                                'Authorization' => 'Bearer ' . $this->getToken()
+                            ]
+                        )
+                    ]
+                )
+            );
+        }
+
+        return $this->client;
+    }
+
+    /**
      * @return mixed
      * @throws Authentication
      */
     protected function getToken()
     {
         if (!$this->token) {
-            $client = new \GuzzleHttp\Client(array_merge(
-                $this->options,
-                [
-                    'headers' => $this->commonHeaders
-                ]
-            ));
+            $client = new \GuzzleHttp\Client(
+                array_merge(
+                    $this->options,
+                    [
+                        'headers' => $this->commonHeaders
+                    ]
+                )
+            );
             /** @var \GuzzleHttp\Psr7\Response $response */
             $response = $client->request(
                 'POST',
@@ -112,40 +159,46 @@ class Client
     }
 
     /**
-     * @param $key
-     * @param $data
-     * @return string
+     * @param $response
+     * @return mixed
+     * @throws RequestFailed
      */
-    protected function buildQueryArray($key, $data)
+    private function handleResponse($response)
     {
-        $output = [];
-        foreach ($data as $k => $v) {
-            $output[] = $key . '[' . $k . ']=' . $v;
+        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+
+        switch ($response->getStatusCode()) {
+            case 200:
+                return $body;
+            default:
+                throw new RequestFailed(
+                    $response->getStatusCode() . ' - ' . print_r($body, true),
+                    $response->getStatusCode()
+                );
         }
-        return implode('&', $output);
     }
 
     /**
-     * @return \GuzzleHttp\Client
+     * @param array $where
+     * @param null|array $orderBy
+     * @param int $page
+     * @param int $limit
+     * @return array
      * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/catalogProductRepositoryV1/catalogProductRepositoryV1GetListGet
      */
-    public function getClient()
+    public function getProducts($where = [], $orderBy = null, $page = 1, $limit = 100)
     {
-        if (!$this->client) {
-            $this->client = new \GuzzleHttp\Client(array_merge(
-                $this->options,
-                [
-                    'headers' => array_merge(
-                        $this->commonHeaders,
-                        [
-                            'Authorization' => 'Bearer ' . $this->getToken()
-                        ]
-                    )
-                ]
-            ));
-        }
+        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/products?' . $searchCriteria->toString()
+        );
 
-        return $this->client;
+        return $this->handleResponse($response);
     }
 
     /**
@@ -170,68 +223,6 @@ class Client
             }
         }
         return $searchCriteria;
-    }
-
-    /**
-     * @param $response
-     * @return mixed
-     * @throws RequestFailed
-     */
-    private function handleResponse($response)
-    {
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch ($response->getStatusCode()) {
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode() . ' - ' . print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
-    }
-
-    /**
-     * @param string $sku
-     * @return array
-     * @throws Authentication
-     * @throws InvalidArgument
-     * @throws RequestFailed
-     * @throws \GuzzleHttp\Exception\GuzzleExceptioncatalogProductRepositoryV1
-     * @see https://devdocs.magento.com/swagger/#/catalogProductRepositoryV1/catalogProductRepositoryV1GetGet
-     */
-    public function getProductBySku($sku)
-    {
-        $response = $this->getClient()->request(
-            'GET',
-            $this->baseUrl . '/rest/V1/products/' . $sku
-        );
-
-        return $this->handleResponse($response);
-    }
-
-    /**
-     * @param array $where
-     * @param null|array $orderBy
-     * @param int $page
-     * @param int $limit
-     * @return array
-     * @throws Authentication
-     * @throws InvalidArgument
-     * @throws RequestFailed
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     * @see https://devdocs.magento.com/swagger/index.html#/catalogProductRepositoryV1/catalogProductRepositoryV1GetListGet
-     */
-    public function getProducts($where = [], $orderBy = null, $page = 1, $limit = 100)
-    {
-        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
-        $response = $this->getClient()->request(
-            'GET',
-            $this->baseUrl . '/rest/V1/products?' . $searchCriteria->toString()
-        );
-
-        return $this->handleResponse($response);
     }
 
     /**
@@ -297,7 +288,7 @@ class Client
     {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/stockStatuses/'.$sku
+            $this->baseUrl . '/rest/V1/stockStatuses/' . $sku
         );
 
         return $this->handleResponse($response);
@@ -336,7 +327,7 @@ class Client
     {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl . '/rest/V1/customers/'.$customer_id
+            $this->baseUrl . '/rest/V1/customers/' . $customer_id
         );
 
         return $this->handleResponse($response);
@@ -457,6 +448,20 @@ class Client
     }
 
     /**
+     * @param $key
+     * @param $data
+     * @return string
+     */
+    protected function buildQueryArray($key, $data)
+    {
+        $output = [];
+        foreach ($data as $k => $v) {
+            $output[] = $key . '[' . $k . ']=' . $v;
+        }
+        return implode('&', $output);
+    }
+
+    /**
      * Update the stock level of the given SKU.
      *
      * @param string $sku
@@ -512,27 +517,27 @@ class Client
         $tracks = [],
         $packages = [],
         $arguments = []
-    ){
+    ) {
         $request = [];
-        if(!empty($items)){
+        if (!empty($items)) {
             $request['items'] = $items;
         }
-        if(!empty($comment)){
+        if (!empty($comment)) {
             $request['comment'] = $comment;
         }
-        if(!empty($tracks)){
+        if (!empty($tracks)) {
             $request['tracks'] = $tracks;
         }
-        if(!empty($packages)){
+        if (!empty($packages)) {
             $request['packages'] = $packages;
         }
-        if(!empty($arguments)){
+        if (!empty($arguments)) {
             $request['arguments'] = $arguments;
         }
 
         $response = $this->getClient()->request(
             'POST',
-            $this->baseUrl.'/rest/V1/order/'.$orderId.'/ship',
+            $this->baseUrl . '/rest/V1/order/' . $orderId . '/ship',
             [
                 'json' => $request
             ]
@@ -558,36 +563,102 @@ class Client
         $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/orders/items?'.$searchCriteria->toString()
+            $this->baseUrl . '/rest/V1/orders/items?' . $searchCriteria->toString()
         );
 
         return $this->handleResponse($response);
     }
 
-    public function getProductAttribute($attribute) {
+    /**
+     * Get all of the options for a product attribute.
+     *
+     * @param string $attribute
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     */
+    public function getProductAttributeOptions($attribute)
+    {
+        $attributes = [];
 
+        try {
+            $response = $this->getClient()->request(
+                'GET',
+                $this->baseUrl . '/rest/V1/products/attributes/' . $attribute
+            );
+
+            $response = $this->handleResponse($response);
+
+            $attributes = $response['options'];
+        } catch (Exception $e) {
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Get data about a product attribute.
+     *
+     * @param string $attribute
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function getProductAttribute($attribute)
+    {
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl.'/rest/V1/products/attributes/'.$attribute
+            $this->baseUrl . '/rest/V1/products/attributes/' . $attribute
         );
 
         return $this->handleResponse($response);
     }
 
-    public function addAttribute($attribute, $label) {
+    /**
+     * Add a label to a product attribute.
+     * @param string $attribute
+     * @param string $label
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function addProductAttributeLabel($attribute, $label)
+    {
         $response = $this->getClient()->request(
             'POST',
-            $this->baseUrl.'/rest/V1/products/attributes',
+            $this->baseUrl . '/rest/V1/products/attributes/' . $attribute . '/options',
             [
                 'json' => [
-                    'attribute' => [
-                        'attribute_code' => $attribute,
-                        'options' => [
-                            'label' => $label
-                        ]
+                    'option' => [
+                        'label' => $label
                     ]
                 ]
             ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * Delete an product attribute label.
+     *
+     * @param string $attribute
+     * @param int $label_id
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function deleteProductAttributeLabel($attribute, int $label_id)
+    {
+        $response = $this->getClient()->request(
+            'DELETE',
+            $this->baseUrl . '/rest/V1/products/attributes/' . $attribute . '/options/' . $label_id
         );
 
         return $this->handleResponse($response);

@@ -65,7 +65,14 @@ _get all simple, enabled and visible products_
   - getStockStatuses($sku)
   - shipOrder($orderId, $items = [], $notify = true, $appendComment = true, $comment = [], $tracks = [], $packages = [], $arguments = [])
   - getOrderItems($where = [], $orderBy = null, $page = 1, $limit = 100)
-  Added the ability to supply custom configuration to the guzzle client
+  - Added the ability to supply custom configuration to the guzzle client
 
 - 1.0.7
-   Bumped Guzzle version to support newer apps.
+   - Bumped Guzzle version to support newer apps.
+
+- 1.0.10
+  Replaced attribute methods:
+    - getProductAttributeOptions($attribute = 'string')
+    - getProductAttribute($attribute = 'string')
+    - addProductAttributeLabel($attribute = 'string', $label = 'string')
+    - deleteProductAttributeLabel($attribute = 'string', int $label_id)
