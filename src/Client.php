@@ -142,11 +142,11 @@ class Client
                 ]
             );
 
-            $token = \GuzzleHttp\json_decode($response->getBody(), true);
+            $token = \GuzzleHttp\json_decode(trim($response->getBody()), true);
 
             switch ($response->getStatusCode()) {
                 case 200:
-                    $this->token = $token;
+                    $this->token = trim($token);
                     break;
                 default:
                     throw new Authentication(
