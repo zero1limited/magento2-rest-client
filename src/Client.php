@@ -494,6 +494,40 @@ class Client
         return $this->handleResponse($response);
     }
 
+
+    /**
+     * Update the stock level of the given SKU.
+     *
+     * @param string $sku
+     * @param $stockData
+     * @param int|null $item_id
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function setStockDataForSku(string $sku, $stockData, int $item_id = null)
+    {
+        // We can't set the default above to be 1, so null-check
+        // it here and then default to item 1 in the product.
+        if ($item_id === null) {
+            $item_id = 1;
+        }
+
+        $response = $this->getClient()->request(
+            'PUT',
+            $this->baseUrl . '/rest/V1/products/' . $sku . '/stockItems/' . $item_id,
+            [
+                'json' => [
+                    'stockItem' => $stockData
+                ]
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+
     /**
      * @param $orderId
      * @param array $items
