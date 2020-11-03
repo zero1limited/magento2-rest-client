@@ -72,25 +72,6 @@ class Client
     }
 
     /**
-     * @param string $sku
-     * @return array
-     * @throws Authentication
-     * @throws InvalidArgument
-     * @throws RequestFailed
-     * @throws \GuzzleHttp\Exception\GuzzleExceptioncatalogProductRepositoryV1
-     * @see https://devdocs.magento.com/swagger/#/catalogProductRepositoryV1/catalogProductRepositoryV1GetGet
-     */
-    public function getProductBySku($sku)
-    {
-        $response = $this->getClient()->request(
-            'GET',
-            $this->baseUrl . '/rest/V1/products/' . $sku
-        );
-
-        return $this->handleResponse($response);
-    }
-
-    /**
      * @return \GuzzleHttp\Client
      * @throws Authentication
      */
@@ -696,5 +677,129 @@ class Client
         );
 
         return $this->handleResponse($response);
+    }
+
+    /**
+     * @param string $sku
+     * @return array
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleExceptioncatalogProductRepositoryV1
+     * @see https://devdocs.magento.com/swagger/#/catalogProductRepositoryV1/catalogProductRepositoryV1GetGet
+     */
+    public function getProductBySku($sku)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/products/' . $sku
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param array $product
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://devdocs.magento.com/swagger/index.html
+     */
+    public function createProduct($product)
+    {
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl . '/rest/default/V1/products',
+            [
+                'json' => [
+                    "product" => $product
+                ]
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * Add a comment to an order.
+     *
+     * @param int $orderId The Magento Order ID to attach comment to.
+     * @param $comment The actual comment text to store.
+     * @param int $is_customer_notified Whether to notify the customer of this comment.
+     *
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function addOrderComment(int $orderId, $comment, $is_customer_notified = 0)
+    {
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl . '/rest/V1/orders/' . $orderId . '/comments',
+            [
+                'json' => [
+                    "statusHistory" => [
+                        "comment" => $comment,
+                        "parent_id" => $orderId,
+                        "is_customer_notified" => $is_customer_notified,
+                        "is_visible_on_front" => 1
+                    ]
+                ]
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * Set the website a product is for.
+     *
+     * @param $sku
+     * @param $websiteId
+     * @return mixed
+     * @throws Authentication
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see http://devdocs.magento.com/swagger/#!/catalogProductWebsiteLinkRepositoryV1
+     */
+    public function setWebsiteForProduct($sku, $websiteId) {
+        $response = $this->getClient()->request(
+            'PUT',
+            $this->baseUrl . '/V1/products/'.$sku.'/websites',
+            [
+                'json' => [
+                    'productWebsiteLink' => [
+                        'sku' => $sku,
+                        'website_id' => (int)$websiteId
+                    ]
+                ]
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param $inc_order_id
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     */
+    public function getOrderByIncrementId($inc_order_id)
+    {
+
+        $order = $this->getOrders([
+            [['increment_id', $inc_order_id, 'eq']]
+        ]);
+
+        $order = $order['items'][0];
+
+        return $order;
     }
 }
