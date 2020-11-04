@@ -58,17 +58,23 @@ class Client
      * @param $username string
      * @param $password string
      * @param $options []
+     * @param $token string|null
      */
     public function __construct(
         $baseUrl,
         $username,
         $password,
-        $options = []
+        $options = [],
+        $token = null
     ) {
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->username = $username;
         $this->password = $password;
         $this->options = $options;
+
+        if ($token !== null) {
+            $this->token = $token;
+        }
     }
 
     /**
@@ -102,40 +108,45 @@ class Client
      */
     protected function getToken()
     {
-        if (!$this->token) {
-            $client = new \GuzzleHttp\Client(
-                array_merge(
-                    $this->options,
-                    [
-                        'headers' => $this->commonHeaders
-                    ]
-                )
-            );
-            /** @var \GuzzleHttp\Psr7\Response $response */
-            $response = $client->request(
-                'POST',
-                $this->baseUrl . '/rest/V1/integration/admin/token',
-                [
-                    'json' => [
-                        'username' => $this->username,
-                        'password' => $this->password,
-                    ]
-                ]
-            );
-
-            $token = \GuzzleHttp\json_decode(trim($response->getBody()), true);
-
-            switch ($response->getStatusCode()) {
-                case 200:
-                    $this->token = trim($token);
-                    break;
-                default:
-                    throw new Authentication(
-                        $response->getStatusCode() . ' - ' . $token,
-                        $response->getStatusCode()
-                    );
-            }
+        // If we've been passed a token, use it...
+        if ($this->token !== null) {
+            return $this->token;
         }
+
+        // ...otherwise go and fetch a new token.
+        $client = new \GuzzleHttp\Client(
+            array_merge(
+                $this->options,
+                [
+                    'headers' => $this->commonHeaders
+                ]
+            )
+        );
+        /** @var \GuzzleHttp\Psr7\Response $response */
+        $response = $client->request(
+            'POST',
+            $this->baseUrl . '/rest/V1/integration/admin/token',
+            [
+                'json' => [
+                    'username' => $this->username,
+                    'password' => $this->password,
+                ]
+            ]
+        );
+
+        $token = \GuzzleHttp\json_decode(trim($response->getBody()), true);
+
+        switch ($response->getStatusCode()) {
+            case 200:
+                $this->token = trim($token);
+                break;
+            default:
+                throw new Authentication(
+                    $response->getStatusCode() . ' - ' . $token,
+                    $response->getStatusCode()
+                );
+        }
+
         return $this->token;
     }
 
