@@ -739,6 +739,7 @@ class Client
      * Add a comment to an order.
      *
      * @param int $orderId The Magento Order ID to attach comment to.
+     * @param $status Order status code - this needs to be passed even if it isn't being changed.
      * @param $comment The actual comment text to store.
      * @param int $is_customer_notified Whether to notify the customer of this comment.
      *
@@ -747,7 +748,7 @@ class Client
      * @throws RequestFailed
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function addOrderComment(int $orderId, $comment, $is_customer_notified = 0)
+    public function addOrderComment(int $orderId, $status, $comment, $is_customer_notified = 0)
     {
         $response = $this->getClient()->request(
             'POST',
@@ -756,6 +757,7 @@ class Client
                 'json' => [
                     "statusHistory" => [
                         "comment" => $comment,
+                        "status" => $status,
                         "parent_id" => $orderId,
                         "is_customer_notified" => $is_customer_notified,
                         "is_visible_on_front" => 1
