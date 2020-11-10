@@ -103,6 +103,14 @@ class Client
     }
 
     /**
+     * @return string
+     */
+    public function getBaseUrl()
+    {
+        return $this->baseUrl;
+    }
+
+    /**
      * @return mixed
      * @throws Authentication
      */
@@ -201,7 +209,7 @@ class Client
      * @return SearchCriteria
      * @throws InvalidArgument
      */
-    protected function buildQuery($where = [], $orderBy = null, $page = 1, $limit = 100)
+    public function buildQuery($where = [], $orderBy = null, $page = 1, $limit = 100)
     {
         $searchCriteria = new SearchCriteria();
         foreach ($where as $filterGroup) {
@@ -814,5 +822,18 @@ class Client
         $order = $order['items'][0];
 
         return $order;
+    }
+
+    public function getPaymentMethods($cartId)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl.'/rest/V1/guest-carts/'.$cartId.'/payment-methods?storeCode=db_fr',
+            [
+                'json' => []
+            ]
+        );
+
+        return $this->handleResponse($response);
     }
 }

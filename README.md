@@ -76,3 +76,6 @@ _get all simple, enabled and visible products_
     - getProductAttribute($attribute = 'string')
     - addProductAttributeLabel($attribute = 'string', $label = 'string')
     - deleteProductAttributeLabel($attribute = 'string', int $label_id)
+
+- 1.0.18
+  - Refactor to allow use with custom endpoints, see [example11](/examples/example11.php)
