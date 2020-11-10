@@ -1,7 +1,7 @@
 {
     "name": "zero1/magento2-rest-client",
     "description": "PHP rest client for Magento 2",
-    "version": "1.0.18",
+    "version": "1.0.19",
     "type": "library",
     "authors": [
         {

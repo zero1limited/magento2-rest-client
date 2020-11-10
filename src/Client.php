@@ -5,6 +5,7 @@ namespace Magento2;
 use Dsheiko\SearchCriteria;
 use Exception;
 use Magento2\Client\Exception\Authentication;
+use Magento2\Client\Exception\EntityNotFoundException;
 use Magento2\Client\Exception\InvalidArgument;
 use Magento2\Client\Exception\RequestFailed;
 
@@ -93,7 +94,8 @@ class Client
                             [
                                 'Authorization' => 'Bearer ' . $this->getToken()
                             ]
-                        )
+                        ),
+                        'http_errors' => false
                     ]
                 )
             );
@@ -170,6 +172,12 @@ class Client
         switch ($response->getStatusCode()) {
             case 200:
                 return $body;
+            case 404:
+                if(isset($body['message'])){
+                    if($body['message'] == 'The product that was requested doesn\'t exist. Verify the product and try again.'){
+                        throw new EntityNotFoundException($body['message'], $response->getStatusCode());
+                    }
+                }
             default:
                 throw new RequestFailed(
                     $response->getStatusCode() . ' - ' . print_r($body, true),
@@ -705,6 +713,7 @@ class Client
      * @throws InvalidArgument
      * @throws RequestFailed
      * @throws \GuzzleHttp\Exception\GuzzleExceptioncatalogProductRepositoryV1
+     * @throws \Magento2\Client\Exception\EntityNotFoundException
      * @see https://devdocs.magento.com/swagger/#/catalogProductRepositoryV1/catalogProductRepositoryV1GetGet
      */
     public function getProductBySku($sku)

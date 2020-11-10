@@ -79,3 +79,5 @@ _get all simple, enabled and visible products_
 
 - 1.0.18
   - Refactor to allow use with custom endpoints, see [example11](/examples/example11.php)
+- 1.0.19
+  - Addition of "entity not found" exception, see [example12](/examples/example12.php)
