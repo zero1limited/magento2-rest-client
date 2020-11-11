@@ -753,6 +753,34 @@ class Client
     }
 
     /**
+     * @param array $product
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws \Magento2\Client\Exception\EntityNotFoundException
+     * @see https://devdocs.magento.com/swagger/index.html
+     */
+    public function updateProduct($sku, $data = [], $storeCode = 'default')
+    {
+        $data['sku'] = $sku;
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl . '/rest/'.$storeCode.'/V1/products',
+            [
+                'json' => [
+                    "product" => $data
+                ]
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+
+    /**
      * Add a comment to an order.
      *
      * @param int $orderId The Magento Order ID to attach comment to.
