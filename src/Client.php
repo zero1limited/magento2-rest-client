@@ -59,7 +59,7 @@ class Client
      * @param $username string
      * @param $password string
      * @param $options []
-     * @param $token string|null
+     * @param $token string|null|TokenManagerInterfaceM
      */
     public function __construct(
         $baseUrl,
@@ -118,9 +118,15 @@ class Client
      */
     protected function getToken()
     {
-        // If we've been passed a token, use it...
-        if ($this->token !== null) {
-            return $this->token;
+        // if we have a valid token return it
+        if($this->token instanceof TokenManagerInterface){
+            if(!$this->token->isTokenExpired()){
+                return $this->token->getToken();
+            }
+        }else{
+            if ($this->token !== null) {
+                return $this->token;
+            }
         }
 
         // ...otherwise go and fetch a new token.
@@ -148,7 +154,11 @@ class Client
 
         switch ($response->getStatusCode()) {
             case 200:
-                $this->token = trim($token);
+                if($this->token instanceof TokenManagerInterface){
+                    $this->token->setToken($token);
+                }else{
+                    $this->token = trim($token);
+                }
                 break;
             default:
                 throw new Authentication(
@@ -157,7 +167,11 @@ class Client
                 );
         }
 
-        return $this->token;
+        if($this->token instanceof TokenManagerInterface){
+            return $this->token->getToken();
+        }else{
+            return $this->token;
+        }
     }
 
     /**
@@ -262,26 +276,18 @@ class Client
      * @throws \GuzzleHttp\Exception\GuzzleException
      * @see https://devdocs.magento.com/swagger/index.html#/catalogCategoryManagementV1/catalogCategoryManagementV1GetTreeGet
      */
-    public function getAllCategories($orderBy = null, $page = 1, $limit = 100)
+    public function getAllCategories($orderBy = null, $page = 1, $limit = 250)
     {
-        $searchCriteria = $this->buildQuery([], $orderBy, $page, $limit);
+        $outputCategories = [];
 
-        $response = $this->getClient()->request(
-            'GET',
-            $this->baseUrl . '/rest/V1/categories?' . $searchCriteria->toString()
-        );
+        do{
+            $categories = $this->getCategories([], $orderBy, $page, $limit);
+            array_push($outputCategories, ...$categories['items']);
+            $totalItems = $categories['total_count'];
+            $page++;
+        }while((($page - 1) * $limit) <= $totalItems);
 
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
-
-        switch ($response->getStatusCode()) {
-            case 200:
-                return $body;
-            default:
-                throw new RequestFailed(
-                    $response->getStatusCode() . ' - ' . print_r($body, true),
-                    $response->getStatusCode()
-                );
-        }
+        return $outputCategories;
     }
 
     /**
@@ -319,7 +325,7 @@ class Client
         $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
         $response = $this->getClient()->request(
             'GET',
-            $this->baseUrl . '/rest//V1/categories/list?' . $searchCriteria->toString()
+            $this->baseUrl . '/rest/V1/categories/list?' . $searchCriteria->toString()
         );
 
         return $this->handleResponse($response);
@@ -619,14 +625,14 @@ class Client
      * @throws Authentication
      * @throws RequestFailed
      */
-    public function getProductAttributeOptions($attribute)
+    public function getProductAttributeOptions($attribute, $storeCode = 'default')
     {
         $attributes = [];
 
         try {
             $response = $this->getClient()->request(
                 'GET',
-                $this->baseUrl . '/rest/V1/products/attributes/' . $attribute
+                $this->baseUrl . '/rest/'.$storeCode.'/V1/products/attributes/' . $attribute
             );
 
             $response = $this->handleResponse($response);
@@ -668,20 +674,23 @@ class Client
      * @throws RequestFailed
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function addProductAttributeLabel($attribute, $label)
+    public function addProductAttributeLabel($attribute, $label, $storeLabels = null)
     {
+        $postData = [
+            'label' => $label
+        ];
+        if($storeLabels){
+            $postData['store_labels'] = $storeLabels;
+        }
         $response = $this->getClient()->request(
             'POST',
             $this->baseUrl . '/rest/V1/products/attributes/' . $attribute . '/options',
             [
                 'json' => [
-                    'option' => [
-                        'label' => $label
-                    ]
+                    'option' => $postData
                 ]
             ]
         );
-
         return $this->handleResponse($response);
     }
 
@@ -825,10 +834,11 @@ class Client
      * @throws \GuzzleHttp\Exception\GuzzleException
      * @see http://devdocs.magento.com/swagger/#!/catalogProductWebsiteLinkRepositoryV1
      */
-    public function setWebsiteForProduct($sku, $websiteId) {
+    public function setWebsiteForProduct($sku, $websiteId)
+    {
         $response = $this->getClient()->request(
             'PUT',
-            $this->baseUrl . '/V1/products/'.$sku.'/websites',
+            $this->baseUrl . '/rest/V1/products/'.$sku.'/websites',
             [
                 'json' => [
                     'productWebsiteLink' => [
@@ -873,4 +883,224 @@ class Client
 
         return $this->handleResponse($response);
     }
+
+    /**
+     * @param string $sku
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://devdocs.magento.com/swagger/index.html
+     */
+    public function getTierPrices($sku)
+    {
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl . '/rest/V1/products/tier-prices-information',
+            [
+                'json' => [
+                    'skus' => [$sku]
+                ]
+            ]
+        );
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param string $sku
+     * @param string|null $customerGroup - specifiy to only remove for a specific customer group
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://devdocs.magento.com/swagger/index.html
+     */
+    public function removeTierPrices($sku)
+    {
+        // for magento 2 we have to retrieve them so we can remove them
+        $tierPrices = $this->getTierPrices($sku);
+        foreach($tierPrices as &$tierPrice){
+            $tierPrice['sku'] = $sku;
+        }
+
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl . '/rest/V1/products/tier-prices-delete',
+            [
+                'json' => [
+                    'prices' => $tierPrices
+                ]
+            ]
+        );
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param string $sku
+     * @parem array $tierPrices
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://devdocs.magento.com/swagger/index.html
+     */
+    public function setTierPrices($sku, $tierPrices)
+    {
+        // force everything to a sku
+        foreach($tierPrices as &$tierPrice){
+            $tierPrice['sku'] = $sku;
+        }
+
+        $response = $this->getClient()->request(
+            'PUT',
+            $this->baseUrl . '/rest/V1/products/tier-prices',
+            [
+                'json' => [
+                    'prices' => $tierPrices
+                ]
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * Add a product to a category
+     * @param string $attribute
+     * @param string $label
+     * @return mixed
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function addProductToCategory($sku, $categoryId, $position = null, $extensionAttributes = null)
+    {
+        $payload = [
+            'productLink' => [
+                'sku' => $sku,
+                'category_id' => $categoryId,
+            ]
+        ];
+        if($position !== null){
+            $payload['productLink']['position'] = $position;
+        }
+        if($extensionAttributes !== null){
+            $payload['productLink']['extension_attributes'] = $extensionAttributes;
+        }
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl . '/rest/V1/categories/'.$categoryId.'/products',
+            [
+                'json' => $payload
+            ]
+        );
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param string $sku
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://devdocs.magento.com/swagger/index.html
+     */
+    public function getMediaGalleryEntries($sku)
+    {
+        $response = $this->getClient()->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/products/'.$sku.'/media'
+        );
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param string $sku
+     * @param array $entryData
+     * @param string $storeCode
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://magento.redoc.ly/2.3.6-admin/tag/productsskumedia#operation/catalogProductAttributeMediaGalleryManagementV1CreatePost
+     */
+    public function addMediaGalleryEntry($sku, $entryData, $storeCode = 'default')
+    {
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl.'/rest/'.$storeCode.'/V1/products/'.$sku.'/media',
+            [
+                'json' => [
+                    'entry' => $entryData
+                ]
+            ]
+        );
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param string $sku
+     * @param string|int $entryId
+     * @param array $entryData
+     * @param string $storeCode
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://magento.redoc.ly/2.3.6-admin/tag/productsskumedia#operation/catalogProductAttributeMediaGalleryManagementV1UpdatePut
+     */
+    public function updateMediaGalleryEntry($sku, $entryId, $entryData, $storeCode = 'default')
+    {
+        $response = $this->getClient()->request(
+            'PUT',
+            $this->baseUrl.'/rest/'.$storeCode.'/V1/products/'.$sku.'/media/'.$entryId,
+            [
+                'json' => [
+                    'entry' => $entryData
+                ]
+            ]
+        );
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * @param string $sku
+     * @param string|int $entryId
+     * @return mixed
+     *
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     *
+     * @see https://magento.redoc.ly/2.3.6-admin/tag/productsskumedia#operation/catalogProductAttributeMediaGalleryManagementV1UpdatePut
+     */
+    public function deleteMediaGalleryEntry($sku, $entryId)
+    {
+        $response = $this->getClient()->request(
+            'DELETE',
+            $this->baseUrl . '/rest/V1/products/'.$sku.'/media/'.$entryId
+        );
+        return $this->handleResponse($response);
+    }
+
 }

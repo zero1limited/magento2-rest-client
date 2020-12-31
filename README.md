@@ -88,3 +88,13 @@ _get all simple, enabled and visible products_
   - Added get product attribute options example
   - Added update product function
 
+- 1.1.0
+  - Added ability to pass in token manager, see [example15](/examples/example15.php)
+  - bug fix: getAllCategories will now recursively get all categories instead of just the first page
+  - bug fix: getCategories invalid url endpoint resolved
+  - feature: getProductAttributeOptions can now have a store code passed in
+  - feature: addProductAttributeLabel can now be passed a list of "store labels" which should be added to the new attribute option
+  - bug fix: setWebsiteForProduct invalid url endpoint resolved
+  - feature: Tier prices can now be managed through: getTierPrices, removeTierPrices, setTierPrices
+  - feature: products can now be added to categories via addProductToCategory
+  - feature: media gallery entries can now be managed through: getMediaGalleryEntries, addMediaGalleryEntry, updateMediaGalleryEntry, deleteMediaGalleryEntry
