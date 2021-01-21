@@ -134,7 +134,8 @@ class Client
             array_merge(
                 $this->options,
                 [
-                    'headers' => $this->commonHeaders
+                    'headers' => $this->commonHeaders,
+                    'http_errors' => false,
                 ]
             )
         );
@@ -150,7 +151,14 @@ class Client
             ]
         );
 
-        $token = \GuzzleHttp\json_decode(trim($response->getBody()), true);
+        try{
+            $token = \GuzzleHttp\json_decode(trim($response->getBody()), true);
+        }catch(\Exception $e){
+            throw new RequestFailed(
+                'Invalid response: '.$e->getMessage().'. Raw response: '.$response->getBody(),
+                $response->getStatusCode()
+            );
+        }
 
         switch ($response->getStatusCode()) {
             case 200:
@@ -162,7 +170,7 @@ class Client
                 break;
             default:
                 throw new Authentication(
-                    $response->getStatusCode() . ' - ' . $token,
+                    $response->getStatusCode() . ' - ' . $response->getBody(),
                     $response->getStatusCode()
                 );
         }
@@ -181,7 +189,15 @@ class Client
      */
     private function handleResponse($response)
     {
-        $body = \GuzzleHttp\json_decode($response->getBody(), true);
+        $body = null;
+        try{
+            $body = \GuzzleHttp\json_decode($response->getBody(), true);
+        }catch(\Exception $e){
+            throw new RequestFailed(
+                'Invalid response: '.$e->getMessage().'. Raw response: '.$response->getBody(),
+                $response->getStatusCode()
+            );
+        }
 
         switch ($response->getStatusCode()) {
             case 200:
