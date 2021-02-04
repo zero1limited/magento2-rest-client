@@ -76,6 +76,10 @@ class Client
         if ($token !== null) {
             $this->token = $token;
         }
+
+        if(isset($options['headers'], $options['headers']['User-Agent'])){
+            $this->commonHeaders['User-Agent'] = $options['headers']['User-Agent'];
+        }
     }
 
     /**
@@ -1119,4 +1123,16 @@ class Client
         return $this->handleResponse($response);
     }
 
+    public function setShippingInformation($cartId, $body, $storeCode = 'default')
+    {
+        $response = $this->getClient()->request(
+            'POST',
+            $this->baseUrl.'/rest/V1/guest-carts/'.$cartId.'/shipping-information?storeCode='.$storeCode,
+            [
+                'json' => $body
+            ]
+        );
+
+        return $this->handleResponse($response);
+    }
 }
