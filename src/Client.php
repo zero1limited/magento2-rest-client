@@ -5,6 +5,7 @@ namespace Magento2;
 use Dsheiko\SearchCriteria;
 use Exception;
 use Magento2\Client\Exception\Authentication;
+use Magento2\Client\Exception\DatabaseDeadlock;
 use Magento2\Client\Exception\EntityNotFoundException;
 use Magento2\Client\Exception\InvalidArgument;
 use Magento2\Client\Exception\RequestFailed;
@@ -15,6 +16,12 @@ use Magento2\Client\Exception\RequestFailed;
  */
 class Client
 {
+    /**
+     * Maximum number of times to repeat valid requests
+     * (e.g if we receive DB lock wait timeout)
+     */
+    const MAX_ATTEMPTS = 10;
+
     /**
      * @var string
      */
@@ -187,7 +194,41 @@ class Client
     }
 
     /**
-     * @param $response
+     * @param $method string
+     * @param $url string
+     * @param $data []
+     * @return mixed
+     * @throws Authentication
+     * @throws DatabaseDeadlock
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    protected function request($method, $url, $data)
+    {
+        $counter = 0;
+        do{
+            $exception = null;
+            sleep($counter);
+            $counter++;
+            try{
+                $response = $this->handleResponse(
+                    $this->getClient()->request(
+                        $method, $url, $data
+                    )
+                );
+            }catch (DatabaseDeadlock $e){
+                $exception = $e;
+            }
+        }while($exception != null && $counter < self::MAX_ATTEMPTS);
+
+        if($exception){
+            throw $exception;
+        }
+        return $response;
+    }
+
+    /**
+     * @param $response \GuzzleHttp\Psr7\Response
      * @return mixed
      * @throws RequestFailed
      */
@@ -211,6 +252,10 @@ class Client
                     if($body['message'] == 'The product that was requested doesn\'t exist. Verify the product and try again.'){
                         throw new EntityNotFoundException($body['message'], $response->getStatusCode());
                     }
+                }
+            case 400:
+                if(isset($body['message']) && strpos($body['message'], 'Database deadlock found when trying to get lock') !== false){
+                    throw new DatabaseDeadlock($body['message'], $response->getStatusCode());
                 }
             default:
                 throw new RequestFailed(
@@ -548,7 +593,7 @@ class Client
             $item_id = 1;
         }
 
-        $response = $this->getClient()->request(
+        return $this->request(
             'PUT',
             $this->baseUrl . '/rest/V1/products/' . $sku . '/stockItems/' . $item_id,
             [
@@ -557,8 +602,6 @@ class Client
                 ]
             ]
         );
-
-        return $this->handleResponse($response);
     }
 
 
@@ -795,7 +838,8 @@ class Client
     public function updateProduct($sku, $data = [], $storeCode = 'default')
     {
         $data['sku'] = $sku;
-        $response = $this->getClient()->request(
+
+        return $this->request(
             'POST',
             $this->baseUrl . '/rest/'.$storeCode.'/V1/products',
             [
@@ -804,10 +848,7 @@ class Client
                 ]
             ]
         );
-
-        return $this->handleResponse($response);
     }
-
 
     /**
      * Add a comment to an order.
