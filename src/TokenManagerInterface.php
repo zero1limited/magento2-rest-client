@@ -34,4 +34,10 @@ interface TokenManagerInterface
      * @return int
      */
     public function getExpiryTime();
+
+    /**
+     * import credentials from storage
+     * @return void
+     */
+    public function importFromStorage();
 }

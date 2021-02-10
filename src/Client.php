@@ -95,6 +95,15 @@ class Client
      */
     public function getClient()
     {
+        if($this->token instanceof TokenManagerInterface){
+            if($this->token->isTokenExpired()){
+                // for client to be reconstructed
+                $this->client = null;
+            }
+            // attempt to load new details from storage
+            $this->token->importFromStorage();
+        }
+
         if (!$this->client) {
             $this->client = new \GuzzleHttp\Client(
                 array_merge(

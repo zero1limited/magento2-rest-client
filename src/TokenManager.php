@@ -4,15 +4,15 @@ namespace Magento2;
 class TokenManager implements TokenManagerInterface
 {
     const MAX_FILE_WAIT_TIME = 10;
-    
+
     protected $storageLocation;
-    
+
     protected $tokenLifetime;
 
     protected $token;
 
     protected $tokenExpriation;
-    
+
     public function __construct(
         $storageLocation = '.magento2-restclient.json',
         $tokenLifetime = 10800
@@ -64,7 +64,7 @@ class TokenManager implements TokenManagerInterface
         $this->unlock($handle);
         $this->importFromStorage();
     }
-    
+
     protected function lock($handle)
     {
         $startTime = time();
@@ -75,19 +75,20 @@ class TokenManager implements TokenManagerInterface
             usleep(100);
         }
     }
-    
+
     protected function unlock($handle)
     {
         @flock($handle, LOCK_UN);
         @fclose($handle);
     }
-    
-    protected function importFromStorage()
+
+    public function importFromStorage()
     {
         if(is_file($this->storageLocation)){
             $handle = fopen($this->storageLocation,"r+");
             $this->lock($handle);
             $data = json_decode(fread($handle, filesize($this->storageLocation)), true);
+            $this->unlock($handle);
             $this->token = $data['token'];
             $this->tokenExpriation = $data['expiration'];
         }
