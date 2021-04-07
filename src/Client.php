@@ -212,7 +212,7 @@ class Client
      * @throws RequestFailed
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    protected function request($method, $url, $data)
+    protected function request($method, $url, $data = [])
     {
         $counter = 0;
         do{
@@ -256,15 +256,15 @@ class Client
         switch ($response->getStatusCode()) {
             case 200:
                 return $body;
+            case 400:
+                if(isset($body['message']) && strpos($body['message'], 'Database deadlock found when trying to get lock') !== false){
+                    throw new DatabaseDeadlock($body['message'], $response->getStatusCode());
+                }
             case 404:
                 if(isset($body['message'])){
                     if($body['message'] == 'The product that was requested doesn\'t exist. Verify the product and try again.'){
                         throw new EntityNotFoundException($body['message'], $response->getStatusCode());
                     }
-                }
-            case 400:
-                if(isset($body['message']) && strpos($body['message'], 'Database deadlock found when trying to get lock') !== false){
-                    throw new DatabaseDeadlock($body['message'], $response->getStatusCode());
                 }
             default:
                 throw new RequestFailed(
@@ -279,33 +279,11 @@ class Client
      * @param null|array $orderBy
      * @param int $page
      * @param int $limit
-     * @return array
-     * @throws Authentication
-     * @throws InvalidArgument
-     * @throws RequestFailed
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     * @see https://devdocs.magento.com/swagger/index.html#/catalogProductRepositoryV1/catalogProductRepositoryV1GetListGet
-     */
-    public function getProducts($where = [], $orderBy = null, $page = 1, $limit = 100)
-    {
-        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit);
-        $response = $this->getClient()->request(
-            'GET',
-            $this->baseUrl . '/rest/V1/products?' . $searchCriteria->toString()
-        );
-
-        return $this->handleResponse($response);
-    }
-
-    /**
-     * @param array $where
-     * @param null|array $orderBy
-     * @param int $page
-     * @param int $limit
+     * @parem [] $fieldFilters
      * @return SearchCriteria
      * @throws InvalidArgument
      */
-    public function buildQuery($where = [], $orderBy = null, $page = 1, $limit = 100)
+    public function buildQuery($where = [], $orderBy = null, $page = 1, $limit = 100, $fieldfilters = [])
     {
         $searchCriteria = new SearchCriteria();
         foreach ($where as $filterGroup) {
@@ -318,7 +296,80 @@ class Client
                 throw new InvalidArgument($message);
             }
         }
+
+        if(!empty($fieldfilters)){
+            $searchCriteria->custom('fields', implode(',', $fieldfilters));
+        }
+
         return $searchCriteria;
+    }
+
+    /**
+     * @param array $where
+     * @param null|array $orderBy
+     * @param int $page
+     * @param int $limit
+     * @param array $fieldsFilters As list of the fields you want back, eg: ['items[sku]','total_count']
+     * @return array
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @see https://devdocs.magento.com/swagger/index.html#/catalogProductRepositoryV1/catalogProductRepositoryV1GetListGet
+     */
+    public function getProducts($where = [], $orderBy = null, $page = 1, $limit = 100, $fieldsFilters = [])
+    {
+        $searchCriteria = $this->buildQuery($where, $orderBy, $page, $limit, $fieldsFilters);
+        return $this->request(
+            'GET',
+            $this->baseUrl . '/rest/V1/products?' . $searchCriteria->toString()
+        );
+    }
+
+    /**
+     * recursively calls ->getProducts() getting all results not just the first page
+     *
+     * @param array $where
+     * @param null $orderBy
+     * @param int $limit
+     * @param array $fieldsFilters As list of the fields you want back, eg: ['items[sku]','total_count']
+     * @return array
+     * @throws Authentication
+     * @throws InvalidArgument
+     * @throws RequestFailed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function getAllProducts($where = [], $orderBy = null, $limit = 100, $fieldsFilters = [])
+    {
+        if($orderBy === null){
+            $orderBy = [
+                'field' => 'entity_id',
+                'direction' => 'asc',
+            ];
+        }
+
+        if(!empty($fieldsFilters) && !in_array('total_count', $fieldsFilters)){
+            $fieldsFilters[] = 'total_count';
+        }
+
+        $aggregatedResponse = [
+            'items' => [],
+            'total_count' => null,
+        ];
+        $currentPage = 1;
+
+        while($aggregatedResponse['total_count'] === null || $currentPage * $limit < $aggregatedResponse['total_count']){
+
+            $response = $this->getProducts($where, $orderBy, $currentPage, $limit, $fieldsFilters);
+
+            array_push($aggregatedResponse['items'], ...$response['items']);
+            $aggregatedResponse['total_count'] = $response['total_count'];
+
+            // echo date('c').' '.count($aggregatedResponse['items']).' / '.$aggregatedResponse['total_count'].PHP_EOL;
+            $currentPage++;
+        }
+
+        return $aggregatedResponse;
     }
 
     /**
@@ -353,7 +404,6 @@ class Client
     public function getAllCategories($orderBy = null, $page = 1, $limit = 250)
     {
         $outputCategories = [];
-
         do{
             $categories = $this->getCategories([], $orderBy, $page, $limit);
             array_push($outputCategories, ...$categories['items']);
