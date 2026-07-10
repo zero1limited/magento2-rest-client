@@ -20,7 +20,7 @@ $body = json_decode('{
 
 echo 'Connecting to store: '.$baseUrl.', with credentials: '.$username.' '.$password.PHP_EOL;
 
-$magento = new Magento2\Client(
+$magento = new Magento2Api\Client(
     $baseUrl,
     $username,
     $password,

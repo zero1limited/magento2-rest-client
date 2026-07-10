@@ -1,10 +1,15 @@
+
+
+# HALF WAY THROUGH AN UPDATE
+
+
 # magento2-rest-client
 PHP rest client for Magento 2
 
 ## Examples
 More examples can be found in the [examples](/examples) directory.
 ```php
-$magento = new Magento2\Client(
+$magento = new Magento2Api\Client(
     'https://www.mysite.com',
     'username',
     'password'

@@ -20,12 +20,12 @@ $credentialHash = hash('md5', implode('|', [
 $storageLocation = '/tmp/.magento2-client.'.$credentialHash.'.json';
 
 
-$magento = new Magento2\Client(
+$magento = new Magento2Api\Client(
     $baseUrl,
     $username,
     $password,
     [],
-    new \Magento2\TokenManager($storageLocation)
+    new \Magento2Api\TokenManager($storageLocation)
 );
 
 $magento->getProductBySku('product_sku');

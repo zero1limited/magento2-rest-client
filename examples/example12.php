@@ -9,7 +9,7 @@ $password = $argv[3];
 
 echo 'Connecting to store: '.$baseUrl.', with credentials: '.$username.' '.$password.PHP_EOL;
 
-$magento = new Magento2\Client(
+$magento = new Magento2Api\Client(
     $baseUrl,
     $username,
     $password,
@@ -21,7 +21,7 @@ $magento = new Magento2\Client(
 try{
     $product = $magento->getProductBySku('fooooo');
     print_r($product);
-}catch(\Magento2\Client\Exception\EntityNotFoundException $e){
+}catch(\Magento2Api\Client\Exception\EntityNotFoundException $e){
     echo 'product doesn\'t exist'.PHP_EOL;
 }
 die;

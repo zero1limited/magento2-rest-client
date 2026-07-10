@@ -1,7 +1,7 @@
 <?php
-namespace Magento2\Client\Exception;
+namespace Magento2Api\Client\Exception;
 
-use Magento2\Client\Exception;
+use Magento2Api\Client\Exception;
 
 class RequestFailed extends Exception
 {
